@@ -1,1 +1,3 @@
 .DS_Store
+image_cache.pkl
+models/ViT-B-32.pt

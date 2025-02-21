@@ -5,17 +5,19 @@ import os
 from tqdm import tqdm
 import numpy as np
 
-device = "mps" if torch.backends.mps.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device)
+download_root = "D:\\Workbench\\clip_test\\models"
+
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+model, preprocess = clip.load("ViT-B/32", device=device, download_root=download_root)
 
 images = []
 images_files = []
-for _, file in tqdm(enumerate(os.listdir("/Users/hengjie/Downloads/pic"))):
+for _, file in tqdm(enumerate(os.listdir("E:\\Development\\Source Project\\YOLO\\workspace\\dataset\\val\\images"))):
     if file.endswith((".jpg", ".jpeg", ".png")):
         images_files.append(file)
-        images.append(preprocess(Image.open(f"/Users/hengjie/Downloads/pic/{file}")).unsqueeze(0).to(device))
+        images.append(preprocess(Image.open(f"E:\\Development\\Source Project\\YOLO\\workspace\\dataset\\val\\images\\{file}")).unsqueeze(0).to(device))
 
-text = clip.tokenize(["An anime girl opens her arms in the sky."]).to(device)
+text = clip.tokenize(["An anime girl with dual long pony tails and blue hair sitting on the wing."]).to(device)
 
 results = []
 batch_size = 16
