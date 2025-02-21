@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 import pickle
 
-download_root = "D:\\Workbench\\clip_test\\models"
+download_root = "./models"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device, download_root=download_root)
 
