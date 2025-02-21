@@ -12,7 +12,7 @@ from PyQt6.QtGui import QDesktopServices
 import pickle
 
 download_root = "./models"
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device, download_root=download_root)
 
 CACHE_FILE = "image_cache.pkl"
