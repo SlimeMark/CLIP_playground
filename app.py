@@ -51,12 +51,14 @@ class ImageProcessor(QThread):
                 image_features = model.encode_image(batch_images)
                 text_features = model.encode_text(text)
                 
-                batch_results = [torch.cosine_similarity(img_feat.unsqueeze(0), text_features).item() for img_feat in image_features]
+                batch_results = [torch.cosine_similarity(img_feat, text_features).item() for img_feat in image_features]
                 results.extend(batch_results)
                 self.progress.emit(int((i + self.batch_size) / len(images) * 100))
 
-        result_dict = dict(zip(images_files, results))
-        self.result_ready.emit(result_dict, self.image_files)
+        # 将余弦相似度转换为匹配度百分比
+        match_scores = {img_path: score * 100 for img_path, score in zip(images_files, results)}
+
+        self.result_ready.emit(match_scores, self.image_files)
 
 class CLIPImageSearch(QWidget):
     def __init__(self):
@@ -65,6 +67,7 @@ class CLIPImageSearch(QWidget):
         self.image_files = []
         self.results = {}
         self.low_score_results = {}
+        self.showing_low_scores = False  # 新增变量
         self.initUI()
 
     def initUI(self):
@@ -196,13 +199,21 @@ class CLIPImageSearch(QWidget):
             else:
                 self.low_score_results[img_path] = score
         self.load_low_score_button.setEnabled(bool(self.low_score_results))
+        self.load_low_score_button.setText("Load low score matches")  # 重置按钮文本
+        self.showing_low_scores = False  # 重置状态
         self.save_cache()
 
     def display_low_score_results(self):
-        sorted_results = sorted(self.low_score_results.items(), key=lambda x: x[1], reverse=True)
-        self.result_list.clear()
-        for img_path, score in sorted_results:
-            self.add_image_result(img_path, score)
+        if self.showing_low_scores:
+            self.display_results()
+            self.load_low_score_button.setText("Load low score matches")
+        else:
+            sorted_results = sorted(self.low_score_results.items(), key=lambda x: x[1], reverse=True)
+            self.result_list.clear()
+            for img_path, score in sorted_results:
+                self.add_image_result(img_path, score)
+            self.load_low_score_button.setText("Show high score results only")
+        self.showing_low_scores = not self.showing_low_scores  # 切换状态
 
     def add_image_result(self, img_path, score):
         item = QListWidgetItem()
@@ -214,7 +225,13 @@ class CLIPImageSearch(QWidget):
         pixmap = QPixmap(img_path).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio)
         img_label.setPixmap(pixmap)
 
-        text_label = QLabel(f"{os.path.basename(img_path)}\nScore: {score:.2%}")
+        # 使用对数函数对匹配度百分比进行加权
+        if score < 23:
+            weighted_score = "Low"
+        else:
+            weighted_score = f"{100 * (1 - np.exp(-score / 25)):.2f}%"
+        
+        text_label = QLabel(f"{os.path.basename(img_path)}\nScore: {weighted_score} ({score:.2f}%)")
         
         layout.addWidget(img_label)
         layout.addWidget(text_label)
